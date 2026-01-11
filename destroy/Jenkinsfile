@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = "us-east-1"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/manjukolkar/eks-repo.git'
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
+                    sh '''
+                    cd eks
+                    terraform init -input=false
+                    '''
+                }
+            }
+        }
+
+        stage('Approval') {
+            steps {
+                input message: '⚠️ Are you sure you want to destroy all AWS infrastructure (EKS, VPC, IAM, etc.)?', ok: 'Yes, Destroy'
+            }
+        }
+
+        stage('Terraform Destroy') {
+            steps {
+                withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
+                    sh '''
+                    cd eks
+                    terraform destroy -auto-approve
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Terraform destroy completed successfully! All resources deleted."
+        }
+        failure {
+            echo "❌ Terraform destroy failed! Check Jenkins logs for details."
+        }
+    }
+}
