@@ -8,44 +8,54 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/manjukolkar/eks-repo.git'
+                git branch: 'main', url: 'https://github.com/<your-repo>/eks-terraform.git'
             }
         }
 
         stage('Terraform Init') {
             steps {
-                sh 'cd eks && terraform init'
+                withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
+                    sh 'cd eks && terraform init'
+                }
             }
         }
 
         stage('Terraform Plan') {
             steps {
-                sh 'cd eks && terraform plan -out=tfplan'
+                withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
+                    sh 'cd eks && terraform plan -out=tfplan'
+                }
             }
         }
 
         stage('Terraform Apply') {
             steps {
-                sh 'cd eks && terraform apply -auto-approve tfplan'
+                withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
+                    sh 'cd eks && terraform apply -auto-approve tfplan'
+                }
             }
         }
 
         stage('Configure Kubeconfig') {
             steps {
-                sh '''
-                aws eks update-kubeconfig --region ${AWS_REGION} --name demo-cluster
-                kubectl get nodes
-                '''
+                withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
+                    sh '''
+                    aws eks update-kubeconfig --region ${AWS_REGION} --name demo-cluster
+                    kubectl get nodes
+                    '''
+                }
             }
         }
 
-        stage('Deploy Nginx App') {
+        stage('Deploy Nginx') {
             steps {
-                sh '''
-                kubectl create deployment nginx-app --image=nginx || true
-                kubectl expose deployment nginx-app --port=80 --type=LoadBalancer || true
-                kubectl get svc nginx-app
-                '''
+                withAWS(credentials: 'aws-creds', region: "${AWS_REGION}") {
+                    sh '''
+                    kubectl create deployment nginx-app --image=nginx || true
+                    kubectl expose deployment nginx-app --type=LoadBalancer --port=80 || true
+                    kubectl get svc nginx-app
+                    '''
+                }
             }
         }
     }
