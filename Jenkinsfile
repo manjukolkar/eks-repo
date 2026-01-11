@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/<your-repo>/eks-terraform.git'
+                git branch: 'main', url: 'https://github.com/manjukolkar/eks-repo.git'
             }
         }
 
