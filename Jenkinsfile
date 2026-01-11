@@ -14,32 +14,23 @@ pipeline {
 
         stage('Terraform Init') {
             steps {
-                sh '''
-                cd eks
-                terraform init
-                '''
+                sh 'cd eks && terraform init'
             }
         }
 
         stage('Terraform Plan') {
             steps {
-                sh '''
-                cd eks
-                terraform plan -out=tfplan
-                '''
+                sh 'cd eks && terraform plan -out=tfplan'
             }
         }
 
         stage('Terraform Apply') {
             steps {
-                sh '''
-                cd eks
-                terraform apply -auto-approve tfplan
-                '''
+                sh 'cd eks && terraform apply -auto-approve tfplan'
             }
         }
 
-        stage('Kubeconfig Update') {
+        stage('Configure Kubeconfig') {
             steps {
                 sh '''
                 aws eks update-kubeconfig --region ${AWS_REGION} --name demo-cluster
@@ -51,8 +42,8 @@ pipeline {
         stage('Deploy Nginx App') {
             steps {
                 sh '''
-                kubectl create deployment nginx-app --image=nginx
-                kubectl expose deployment nginx-app --port=80 --type=LoadBalancer
+                kubectl create deployment nginx-app --image=nginx || true
+                kubectl expose deployment nginx-app --port=80 --type=LoadBalancer || true
                 kubectl get svc nginx-app
                 '''
             }
